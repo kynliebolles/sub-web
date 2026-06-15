@@ -4,8 +4,16 @@ services:
     build: ../.
     container_name: subweb
     restart: always
-    ports: 
+    ports:
       - "${SUBWEB_PORT}:80"
+
+  # 自建转换后端（最敏感的一环：它会抓取你的订阅、接触节点凭据）
+  subconverter:
+    image: "tindy2013/subconverter:latest"
+    container_name: subconverter
+    restart: always
+    ports:
+      - "${SUBCONVERTER_PORT}:25500"
 
   myurls:
     image: "careywong/myurls:latest"

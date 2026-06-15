@@ -8,22 +8,34 @@ export function useUrlParser() {
    * @returns {Promise<string>} 分析结果
    */
   const analyzeUrl = async (loadConfig) => {
-    // Check if `loadConfig` includes "target"
-    if (loadConfig.includes("target")) {
-      // If it does, return `loadConfig`
+    // 先解析为标准 URL，拿不到说明输入非法
+    let parsed;
+    try {
+      parsed = new URL(loadConfig);
+    } catch (e) {
+      throw new Error("无效的链接地址：" + loadConfig);
+    }
+
+    // 仅允许 http/https，避免对 file:、javascript: 等协议发起请求
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error("仅支持 http/https 链接");
+    }
+
+    // 已是完整的 subconverter 链接（带 target 查询参数）则直接使用，
+    // 不再用 includes("target") 这种会被任意子串误判的方式
+    if (parsed.searchParams.has("target")) {
       return loadConfig;
-    } else {
-      // Otherwise, fetch the data from `loadConfig` using GET method and follow redirects
-      try {
-        let response = await fetch(loadConfig, {
-          method: "GET",
-          redirect: "follow",
-        });
-        // Return the URL from the response
-        return response.url;
-      } catch (e) {
-        throw new Error("解析短链接失败，请检查短链接服务端是否配置跨域：" + e);
-      }
+    }
+
+    // 否则视为短链接，跟随重定向解析出真实地址
+    try {
+      const response = await fetch(loadConfig, {
+        method: "GET",
+        redirect: "follow",
+      });
+      return response.url;
+    } catch (e) {
+      throw new Error("解析短链接失败，请检查短链接服务端是否配置跨域：" + e);
     }
   };
 
